@@ -21,6 +21,7 @@ const Navbar = () => {
           <a href="#elegibilidade" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Elegibilidade</a>
           <a href="#como-funciona" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Como Funciona</a>
           <a href="#cotas" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Cotas</a>
+          <a href="#documentos" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Documentos</a>
           <Button onClick={() => navigate("/auth")} className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-lg">
             Aceder ao Sistema
           </Button>
@@ -39,6 +40,7 @@ const Navbar = () => {
             <a href="#elegibilidade" className="py-2 text-sm font-medium text-muted-foreground" onClick={() => setOpen(false)}>Elegibilidade</a>
             <a href="#como-funciona" className="py-2 text-sm font-medium text-muted-foreground" onClick={() => setOpen(false)}>Como Funciona</a>
             <a href="#cotas" className="py-2 text-sm font-medium text-muted-foreground" onClick={() => setOpen(false)}>Cotas</a>
+            <a href="#documentos" className="py-2 text-sm font-medium text-muted-foreground" onClick={() => setOpen(false)}>Documentos</a>
             <Button onClick={() => { setOpen(false); navigate("/auth"); }} className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-lg w-full">
               Aceder ao Sistema
             </Button>

@@ -4,6 +4,7 @@ import EligibilityFilter from "@/components/landing/EligibilityFilter";
 import TimelineSection from "@/components/landing/TimelineSection";
 import QuotaCards from "@/components/landing/QuotaCards";
 import DocumentsSection from "@/components/landing/DocumentsSection";
+import IndigenousProgramSection from "@/components/landing/IndigenousProgramSection";
 import Footer from "@/components/landing/Footer";
 
 const Index = () => {
@@ -18,6 +19,7 @@ const Index = () => {
         <div id="como-funciona">
           <TimelineSection />
         </div>
+        <IndigenousProgramSection />
         <div id="cotas">
           <QuotaCards />
         </div>
