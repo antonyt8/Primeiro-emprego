@@ -171,3 +171,7 @@
   --input: 0 0% 20%;
   --ring: 56 100% 50%;
 }
+
+.high-contrast #programa-indigena {
+  background: hsl(var(--background)) !important;
+}
