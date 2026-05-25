@@ -1,7 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
-
-const CONTRAST_STORAGE_KEY = "portal-high-contrast";
-const CONTRAST_POSITION_STORAGE_KEY = "portal-contrast-position";
+import { PROGRAM_STORAGE_KEYS } from "@/constants/program";
 
 type TargetKey = "content" | "menu" | "footer";
 
@@ -35,17 +33,17 @@ const PortalAccessibility = () => {
   const dragOffsetRef = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
-    const persisted = globalThis.localStorage.getItem(CONTRAST_STORAGE_KEY) === "1";
+    const persisted = globalThis.localStorage.getItem(PROGRAM_STORAGE_KEYS.contrast) === "1";
     setHighContrast(persisted);
     document.documentElement.classList.toggle("high-contrast", persisted);
 
-    const persistedPosition = globalThis.localStorage.getItem(CONTRAST_POSITION_STORAGE_KEY);
+    const persistedPosition = globalThis.localStorage.getItem(PROGRAM_STORAGE_KEYS.contrastPosition);
     if (persistedPosition) {
       try {
         const parsed = JSON.parse(persistedPosition) as { x: number; y: number };
         setPosition(parsed);
       } catch {
-        globalThis.localStorage.removeItem(CONTRAST_POSITION_STORAGE_KEY);
+        globalThis.localStorage.removeItem(PROGRAM_STORAGE_KEYS.contrastPosition);
       }
     }
   }, []);
@@ -81,7 +79,7 @@ const PortalAccessibility = () => {
     setHighContrast((previous) => {
       const next = !previous;
       document.documentElement.classList.toggle("high-contrast", next);
-      globalThis.localStorage.setItem(CONTRAST_STORAGE_KEY, next ? "1" : "0");
+      globalThis.localStorage.setItem(PROGRAM_STORAGE_KEYS.contrast, next ? "1" : "0");
       return next;
     });
   };
@@ -123,7 +121,7 @@ const PortalAccessibility = () => {
 
     setIsDragging(false);
     event.currentTarget.releasePointerCapture(event.pointerId);
-    globalThis.localStorage.setItem(CONTRAST_POSITION_STORAGE_KEY, JSON.stringify(position));
+    globalThis.localStorage.setItem(PROGRAM_STORAGE_KEYS.contrastPosition, JSON.stringify(position));
 
     globalThis.setTimeout(() => {
       hasMovedRef.current = false;

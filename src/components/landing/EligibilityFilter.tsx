@@ -1,24 +1,83 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { CheckCircle2, XCircle, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent } from "@/components/ui/card";
-
-const INSTITUTIONS = ["UFAL", "UNEAL", "IFAL", "CESMAC", "UNIT", "FAT"];
-const COURSES = ["Administração", "Direito", "Engenharia Civil", "Ciência da Computação", "Medicina", "Pedagogia", "Contabilidade"];
-const PERIODS = ["1º Período", "2º Período", "3º Período", "4º Período", "5º Período", "6º Período", "7º Período", "8º Período"];
+import { programCatalog, evaluateEligibility, normalizePeriod } from "@/services/programService";
+import { programApi, type CatalogItem } from "@/api/programApi";
+import { HttpError } from "@/api/http";
 
 const EligibilityFilter = () => {
   const [institution, setInstitution] = useState("");
   const [course, setCourse] = useState("");
   const [period, setPeriod] = useState("");
   const [result, setResult] = useState<"eligible" | "ineligible" | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadingCatalogs, setLoadingCatalogs] = useState(true);
+  const [errorMessage, setErrorMessage] = useState("");
+  const [institutions, setInstitutions] = useState<CatalogItem[]>([]);
+  const [courses, setCourses] = useState<CatalogItem[]>([]);
 
-  const handleCheck = () => {
+  useEffect(() => {
+    const loadCatalogs = async () => {
+      setLoadingCatalogs(true);
+
+      try {
+        const [institutionData, courseData] = await Promise.all([
+          programApi.getInstitutions(),
+          programApi.getCourses(),
+        ]);
+
+        setInstitutions(institutionData);
+        setCourses(courseData);
+      } catch {
+        setInstitutions(programCatalog.institutions.map((item) => ({ id: item, name: item })));
+        setCourses(programCatalog.courses.map((item) => ({ id: item, name: item })));
+      } finally {
+        setLoadingCatalogs(false);
+      }
+    };
+
+    void loadCatalogs();
+  }, []);
+
+  const handleCheck = async () => {
     if (!institution || !course || !period) return;
-    const periodNum = parseInt(period);
-    setResult(periodNum >= 3 ? "eligible" : "ineligible");
+
+    const normalizedPeriod = normalizePeriod(period);
+    if (!normalizedPeriod) return;
+
+    setErrorMessage("");
+    setLoading(true);
+
+    try {
+      const selectedInstitution = institutions.find((item) => item.id === institution);
+      const selectedCourse = courses.find((item) => item.id === course);
+
+      const response = await programApi.checkEligibility({
+        institution_id: institution,
+        course_id: course,
+        institution: selectedInstitution?.name ?? institution,
+        course: selectedCourse?.name ?? course,
+        period: normalizedPeriod,
+      });
+
+      setResult(response.eligible ? "eligible" : "ineligible");
+    } catch (error) {
+      if (error instanceof HttpError && error.status === 422) {
+        setResult("ineligible");
+      } else {
+        setResult(evaluateEligibility({
+          institution: institution as "UFAL" | "UNEAL" | "IFAL" | "CESMAC" | "UNIT" | "FAT",
+          course: course as "Administração" | "Direito" | "Engenharia Civil" | "Ciência da Computação" | "Medicina" | "Pedagogia" | "Contabilidade",
+          period: normalizedPeriod,
+        }));
+        setErrorMessage("Nao foi possivel validar com a API agora. Resultado exibido pela regra local.");
+      }
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -48,40 +107,40 @@ const EligibilityFilter = () => {
             <CardContent className="p-6 md:p-8">
               <div className="grid gap-4 md:grid-cols-3">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Instituição</label>
+                  <p className="text-sm font-medium text-foreground">Instituição</p>
                   <Select value={institution} onValueChange={setInstitution}>
                     <SelectTrigger className="h-12 rounded-lg">
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {INSTITUTIONS.map(i => (
-                        <SelectItem key={i} value={i}>{i}</SelectItem>
+                      {institutions.map((i) => (
+                        <SelectItem key={i.id} value={i.id}>{i.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Curso</label>
+                  <p className="text-sm font-medium text-foreground">Curso</p>
                   <Select value={course} onValueChange={setCourse}>
                     <SelectTrigger className="h-12 rounded-lg">
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {COURSES.map(c => (
-                        <SelectItem key={c} value={c}>{c}</SelectItem>
+                      {courses.map((c) => (
+                        <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Período</label>
+                  <p className="text-sm font-medium text-foreground">Período</p>
                   <Select value={period} onValueChange={setPeriod}>
                     <SelectTrigger className="h-12 rounded-lg">
                       <SelectValue placeholder="Selecione..." />
                     </SelectTrigger>
                     <SelectContent>
-                      {PERIODS.map((p, idx) => (
-                        <SelectItem key={p} value={String(idx + 1)}>{p}</SelectItem>
+                      {programCatalog.periods.map((p) => (
+                        <SelectItem key={p.value} value={String(p.value)}>{p.label}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -91,11 +150,15 @@ const EligibilityFilter = () => {
               <Button
                 className="mt-6 w-full bg-primary text-primary-foreground h-12 rounded-lg text-base"
                 onClick={handleCheck}
-                disabled={!institution || !course || !period}
+                disabled={!institution || !course || !period || loading || loadingCatalogs}
               >
                 <Search className="mr-2 h-5 w-5" />
-                Verificar Elegibilidade
+                {loading || loadingCatalogs ? "Verificando..." : "Verificar Elegibilidade"}
               </Button>
+
+              {errorMessage && (
+                <p className="mt-4 rounded-md bg-muted px-3 py-2 text-sm text-muted-foreground">{errorMessage}</p>
+              )}
 
               <AnimatePresence>
                 {result && (

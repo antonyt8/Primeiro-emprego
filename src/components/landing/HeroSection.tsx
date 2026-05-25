@@ -42,7 +42,7 @@ const HeroSection = () => {
               <Button
                 size="lg"
                 className="bg-accent text-accent-foreground hover:bg-accent/90 text-lg px-8 py-6 rounded-lg shadow-lg hover:shadow-xl transition-all"
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/cadastro")}
               >
                 Inscrever-me
                 <ArrowRight className="ml-2 h-5 w-5" />
@@ -51,7 +51,7 @@ const HeroSection = () => {
                 variant="outline"
                 size="lg"
                 className="text-lg px-8 py-6 rounded-lg border-primary/30 text-primary hover:bg-primary/5"
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/login")}
               >
                 Já tenho conta
               </Button>

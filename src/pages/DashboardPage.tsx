@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Bell, Menu, X } from "lucide-react";
 import { DashboardSidebar, navItems } from "@/components/dashboard/DashboardSidebar";
 import type { DashboardNavState } from "@/components/dashboard/DashboardSidebar";
@@ -11,6 +11,9 @@ import TalentBankState from "@/components/dashboard/TalentBankState";
 import ConvocationState from "@/components/dashboard/ConvocationState";
 import AdmissionState from "@/components/dashboard/AdmissionState";
 import RefuseModal from "@/components/dashboard/RefuseModal";
+import { authApi } from "@/api/authApi";
+import { applicationsApi } from "@/api/applicationsApi";
+import { getAuthUser } from "@/lib/auth";
 
 type DashboardProcessState = "open-window" | "talent-bank" | "convocation" | "admission";
 
@@ -26,6 +29,30 @@ const DashboardPage = () => {
   const [processState, setProcessState] = useState<DashboardProcessState>("open-window");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [refuseModalOpen, setRefuseModalOpen] = useState(false);
+  const [userName, setUserName] = useState(getAuthUser()?.name ?? "Candidato");
+
+  useEffect(() => {
+    const loadSession = async () => {
+      try {
+        const me = await authApi.me();
+        setUserName(me.name);
+      } catch {
+        return;
+      }
+
+      try {
+        const process = await applicationsApi.getProcessStatus();
+        if (process.status === "open_window") setProcessState("open-window");
+        if (process.status === "talent_bank") setProcessState("talent-bank");
+        if (process.status === "convocation") setProcessState("convocation");
+        if (process.status === "admission") setProcessState("admission");
+      } catch {
+        // Keep default process state when status endpoint is unavailable.
+      }
+    };
+
+    void loadSession();
+  }, []);
 
   const handleSelectNav = (nextState: DashboardNavState) => {
     setNavState(nextState);
@@ -40,7 +67,12 @@ const DashboardPage = () => {
       {/* Mobile sidebar overlay */}
       {sidebarOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-foreground/30" onClick={() => setSidebarOpen(false)} />
+          <button
+            type="button"
+            className="absolute inset-0 bg-foreground/30"
+            onClick={() => setSidebarOpen(false)}
+            aria-label="Fechar menu lateral"
+          />
           <aside className="absolute left-0 top-0 h-full w-64 bg-card shadow-xl">
             <div className="flex h-16 items-center justify-between px-6 border-b">
               <span className="font-bold text-primary text-sm">PE-AL</span>
@@ -78,7 +110,7 @@ const DashboardPage = () => {
           </button>
           <div className="flex items-center gap-2">
             <span className="text-sm text-muted-foreground">Olá,</span>
-            <span className="text-sm font-semibold text-foreground"> Antony Thiago </span>
+            <span className="text-sm font-semibold text-foreground"> {userName} </span>
           </div>
           <div className="flex items-center gap-2">
             <Bell className="h-5 w-5 text-muted-foreground" />
@@ -113,7 +145,7 @@ const DashboardPage = () => {
 
           {navState === "panel" && (
             <>
-              {processState === "open-window" && <OpenWindowState />}
+              {processState === "open-window" && <OpenWindowState onGoToProfile={() => handleSelectNav("profile")} />}
               {processState === "talent-bank" && <TalentBankState />}
               {processState === "convocation" && <ConvocationState onRefuse={() => setRefuseModalOpen(true)} />}
               {processState === "admission" && <AdmissionState />}

@@ -1,11 +1,75 @@
+import { useMemo } from "react";
 import { motion } from "framer-motion";
 import { User, AlertTriangle, ChevronRight, TrendingUp, Calendar, FileText, Timer } from "lucide-react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
+import { applicationsApi } from "@/api/applicationsApi";
+import { programApi } from "@/api/programApi";
+import { toast } from "@/components/ui/sonner";
+import { queryKeys } from "@/lib/queryKeys";
+import { HttpError } from "@/api/http";
+import { useSession } from "@/lib/session";
 
-const OpenWindowState = () => (
-  <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
+const CURRENT_PROGRAM_ID = "edital-01-2026";
+
+interface OpenWindowStateProps {
+  onGoToProfile: () => void;
+}
+
+const OpenWindowState = ({ onGoToProfile }: OpenWindowStateProps) => {
+  const { authReady, isAuthenticated } = useSession();
+  const queryClient = useQueryClient();
+
+  const { data: profileData } = useQuery({
+    queryKey: queryKeys.profile.me,
+    queryFn: () => programApi.getProfile(),
+    enabled: authReady && isAuthenticated,
+    retry: (failureCount, error) => {
+      const status = error instanceof HttpError ? error.status : undefined;
+      if (status === 401 || status === 403 || status === 419) return false;
+      return failureCount < 2;
+    },
+  });
+
+  const profile = useMemo(
+    () => (profileData && "profile" in profileData ? profileData.profile : profileData ?? null),
+    [profileData]
+  );
+
+  const hasAcademicData = Boolean(profile?.institution_id && profile?.course_id);
+
+  const createApplicationMutation = useMutation({
+    mutationFn: () => {
+      const institutionId = profile?.institution_id;
+      const courseId = profile?.course_id;
+
+      if (!institutionId || !courseId) {
+        throw new Error("Complete os dados academicos no perfil antes de concluir a inscricao.");
+      }
+
+      return applicationsApi.createApplication({
+        program_id: CURRENT_PROGRAM_ID,
+        edital_id: CURRENT_PROGRAM_ID,
+        institution_id: institutionId,
+        course_id: courseId,
+      });
+    },
+    onSuccess: () => {
+      toast.success("Inscricao enviada com sucesso.");
+      void queryClient.invalidateQueries({ queryKey: queryKeys.applications.all });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.dashboard.metrics });
+      void queryClient.invalidateQueries({ queryKey: queryKeys.applications.processStatus });
+    },
+    onError: (error) => {
+      const message = error instanceof Error ? error.message : "Nao foi possivel concluir a inscricao.";
+      toast.error(message);
+    },
+  });
+
+  return (
+    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
     {/* Countdown banner */}
     <Card className="border-accent/30 bg-accent/5 shadow-md">
       <CardContent className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 p-6">
@@ -16,12 +80,27 @@ const OpenWindowState = () => (
           </div>
           <p className="text-sm text-muted-foreground">Encerram em 5 dias, 14 horas e 32 minutos</p>
         </div>
-        <Button className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-lg shadow">
-          Concluir Inscrição
+        <Button
+          className="bg-accent text-accent-foreground hover:bg-accent/90 rounded-lg shadow"
+          onClick={() => createApplicationMutation.mutate()}
+          disabled={createApplicationMutation.isPending || !hasAcademicData}
+        >
+          {createApplicationMutation.isPending ? "Enviando..." : "Concluir Inscricao"}
           <ChevronRight className="ml-1 h-4 w-4" />
         </Button>
       </CardContent>
     </Card>
+
+    {!hasAcademicData && (
+      <Card className="border-warning/40 bg-warning/5">
+        <CardContent className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-sm text-muted-foreground">
+            Complete instituicao e curso no perfil para habilitar a conclusao da inscricao.
+          </p>
+          <Button variant="outline" onClick={onGoToProfile}>Ir para Perfil</Button>
+        </CardContent>
+      </Card>
+    )}
 
     {/* Profile health */}
     <Card>
@@ -92,7 +171,8 @@ const OpenWindowState = () => (
         </CardContent>
       </Card>
     </div>
-  </motion.div>
-);
+    </motion.div>
+  );
+};
 
 export default OpenWindowState;

@@ -3,22 +3,7 @@ import { Accessibility, Users, BookOpen, Building2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
 const quotas = [
-  {
-    icon: Accessibility,
-    label: "PcD",
-    percentage: 10,
-    description: "Pessoas com Deficiência",
-    color: "text-primary",
-    bg: "bg-primary/10",
-  },
-  {
-    icon: Users,
-    label: "Ampla Concorrência",
-    percentage: 10,
-    description: "Aberta a todos os candidatos",
-    color: "text-accent",
-    bg: "bg-accent/10",
-  },
+ 
   {
     icon: BookOpen,
     label: "CadÚnico",
@@ -34,6 +19,22 @@ const quotas = [
     description: "Egressos de escolas públicas",
     color: "text-primary",
     bg: "bg-primary/10",
+  },
+   {
+    icon: Accessibility,
+    label: "PcD",
+    percentage: 10,
+    description: "Pessoas com Deficiência",
+    color: "text-primary",
+    bg: "bg-primary/10",
+  },
+  {
+    icon: Users,
+    label: "Ampla Concorrência",
+    percentage: 10,
+    description: "Aberta a todos os candidatos",
+    color: "text-accent",
+    bg: "bg-accent/10",
   },
 ];
 
